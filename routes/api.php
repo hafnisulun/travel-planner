@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\TripController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -21,4 +22,8 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
 
 Route::prefix('auth')->group(function () {
     Route::post('', [AuthController::class, 'login']);
+});
+
+Route::prefix('trips')->middleware('auth:sanctum')->group(function () {
+    Route::get('', [TripController::class, 'index']);
 });
