@@ -8,7 +8,7 @@ class AuthTest extends TestCase
 {
     public function testInvalidEmail()
     {
-        $response = $this->post('/auth', [
+        $response = $this->postJson('/auth', [
             'email' => 'invalid@mail.com',
             'password' => '123456'
         ]);
@@ -18,7 +18,7 @@ class AuthTest extends TestCase
 
     public function testInvalidPassword()
     {
-        $response = $this->post('/auth', [
+        $response = $this->postJson('/auth', [
             'email' => 'adam@mail.com',
             'password' => '1234567'
         ]);
@@ -28,7 +28,7 @@ class AuthTest extends TestCase
 
     public function testValid()
     {
-        $response = $this->post('/auth', [
+        $response = $this->postJson('/auth', [
             'email' => 'adam@mail.com',
             'password' => '123456'
         ]);
