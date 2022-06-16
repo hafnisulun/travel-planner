@@ -94,7 +94,7 @@ class TripController extends Controller
         $trip->end_at = Carbon::parse($request->end_at)->setTimezone(env('DB_TIMEZONE'));
         $trip->type = $request->type;
         $trip->description = $request->description;
-        
+
         if (!$trip->save()) {
             return response()->json([
                 'message' => 'Update trip failed.'
@@ -102,5 +102,29 @@ class TripController extends Controller
         }
 
         return $trip;
+    }
+
+    /**
+     * Delete the trip by UUID.
+     */
+    public function destroy($uuid)
+    {
+        $trip = Trip::where('user_id', Auth::id())
+            ->where('uuid', $uuid)
+            ->first();
+
+        if (!$trip) {
+            return response()->json([
+                'message' => 'Trip not found.'
+            ], 404);
+        }
+
+        if (!$trip->delete()) {
+            return response()->json([
+                'message' => 'Delete trip failed.'
+            ], 422);
+        }
+
+        return response()->json([], 204);
     }
 }

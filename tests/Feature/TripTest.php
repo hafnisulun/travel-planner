@@ -252,4 +252,52 @@ class TripTest extends TestCase
         $response->assertStatus(200);
         $response->assertJson($newTrip);
     }
+
+    /**
+     * @depends testCreateSucceed
+     */
+    public function testDeleteUnauthorized($trip)
+    {
+        $response = $this->deleteJson("/trips/{$trip->uuid}");
+
+        $response->assertStatus(401);
+    }
+
+    /**
+     * @depends testLogin
+     */
+    public function testDeleteNotFound($auth)
+    {
+        $response = $this->deleteJson('/trips/abc123', [], [
+            'Authorization' => $auth['token_type'] . ' ' . $auth['access_token'],
+        ]);
+
+        $response->assertStatus(404);
+    }
+
+    /**
+     * @depends testLoginAnotherUser
+     * @depends testCreateSucceed
+     */
+    public function testDeleteAnotherUserRecordNotFound($auth, $trip)
+    {
+        $response = $this->deleteJson("/trips/{$trip->uuid}", [], [
+            'Authorization' => $auth['token_type'] . ' ' . $auth['access_token'],
+        ]);
+
+        $response->assertStatus(404);
+    }
+
+    /**
+     * @depends testLogin
+     * @depends testCreateSucceed
+     */
+    public function testDeleteSucceed($auth, $trip)
+    {
+        $response = $this->deleteJson("/trips/{$trip->uuid}", [], [
+            'Authorization' => $auth['token_type'] . ' ' . $auth['access_token'],
+        ]);
+
+        $response->assertStatus(204);
+    }
 }
