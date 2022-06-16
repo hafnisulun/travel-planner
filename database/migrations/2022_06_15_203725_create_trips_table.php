@@ -17,6 +17,7 @@ class CreateTripsTable extends Migration
             $table->id();
             $table->uuid('uuid')->unique();
             $table->foreignId('user_id')->constrained();
+            $table->string('title');
             $table->string('origin');
             $table->string('destination');
             $table->timestamp('start_at')->nullable();
