@@ -53,4 +53,21 @@ class TripController extends Controller
 
         return $trip;
     }
+
+    /**
+     * Retrieve trip by UUID.
+     */
+    public function show($uuid)
+    {
+        $trip = Trip::where('user_id', Auth::id())
+            ->where('uuid', $uuid)->first();
+
+        if (!$trip) {
+            return response()->json([
+                'message' => 'Trip not found.'
+            ], 404);
+        }
+
+        return $trip;
+    }
 }

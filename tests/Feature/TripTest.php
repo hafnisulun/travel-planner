@@ -6,25 +6,28 @@ use Tests\TestCase;
 
 class TripTest extends TestCase
 {
-    private $accessToken;
-    private $tokenType;
-
-    public function testListUnauthenticated()
+    public function testLogin()
     {
-        $response = $this->json('get', '/trips');
-
-        $response->assertStatus(401);
-    }
-
-    public function testListSucceed()
-    {
-        $this->login();
-
-        $response = $this->json('get', '/trips', [
-            'Authorization' => $this->tokenType . ' ' . $this->accessToken,
+        $response = $this->json('post', '/auth', [
+            'email' => 'adam@mail.com',
+            'password' => '123456'
         ]);
 
         $response->assertStatus(200);
+
+        return $response->json();
+    }
+
+    public function testLoginAnotherUser()
+    {
+        $response = $this->json('post', '/auth', [
+            'email' => 'bilal@mail.com',
+            'password' => '123456'
+        ]);
+
+        $response->assertStatus(200);
+
+        return $response->json();
     }
 
     public function testCreateUnauthenticated()
@@ -41,10 +44,11 @@ class TripTest extends TestCase
         $response->assertStatus(401);
     }
 
-    public function testCreateTitleMissing()
+    /**
+     * @depends testLogin
+     */
+    public function testCreateTitleMissing($auth)
     {
-        $this->login();
-
         $response = $this->json('post', '/trips', [
             "origin" => "Jakarta",
             "destination" => "Surabaya",
@@ -53,16 +57,17 @@ class TripTest extends TestCase
             "type" => "business",
             "description" => "Business trip to Surabaya",
         ], [
-            'Authorization' => $this->tokenType . ' ' . $this->accessToken,
+            'Authorization' => $auth['token_type'] . ' ' . $auth['access_token'],
         ]);
 
         $response->assertStatus(422);
     }
 
-    public function testCreateScheduleInvalid()
+    /**
+     * @depends testLogin
+     */
+    public function testCreateScheduleInvalid($auth)
     {
-        $this->login();
-
         $response = $this->json('post', '/trips', [
             "title" => "JKT-SBY",
             "origin" => "Jakarta",
@@ -72,16 +77,17 @@ class TripTest extends TestCase
             "type" => "business",
             "description" => "Business trip to Surabaya",
         ], [
-            'Authorization' => $this->tokenType . ' ' . $this->accessToken,
+            'Authorization' => $auth['token_type'] . ' ' . $auth['access_token'],
         ]);
 
         $response->assertStatus(422);
     }
 
-    public function testCreateSucceed()
+    /**
+     * @depends testLogin
+     */
+    public function testCreateSucceed($auth)
     {
-        $this->login();
-
         $response = $this->json('post', '/trips', [
             "title" => "JKT-SBY",
             "origin" => "Jakarta",
@@ -91,20 +97,78 @@ class TripTest extends TestCase
             "type" => "business",
             "description" => "Business trip to Surabaya",
         ], [
-            'Authorization' => $this->tokenType . ' ' . $this->accessToken,
+            'Authorization' => $auth['token_type'] . ' ' . $auth['access_token'],
         ]);
 
         $response->assertStatus(201);
+
+        return (object) $response->json();
     }
 
-    private function login()
+    public function testListUnauthenticated()
     {
-        $response = $this->json('post', '/auth', [
-            'email' => 'adam@mail.com',
-            'password' => '123456'
+        $response = $this->json('get', '/trips');
+
+        $response->assertStatus(401);
+    }
+
+    /**
+     * @depends testLogin
+     */
+    public function testListSucceed($auth)
+    {
+        $response = $this->json('get', '/trips', [], [
+            'Authorization' => $auth['token_type'] . ' ' . $auth['access_token'],
         ]);
 
-        $this->accessToken = $response->json('access_token');
-        $this->tokenType = $response->json('token_type');
+        $response->assertStatus(200);
+    }
+
+    /**
+     * @depends testCreateSucceed
+     */
+    public function testGetUnauthorized($trip)
+    {
+        $response = $this->json('get', "/trips/{$trip->uuid}");
+
+        $response->assertStatus(401);
+    }
+
+    /**
+     * @depends testLogin
+     */
+    public function testGetNotFound($auth)
+    {
+        $response = $this->json('get', '/trips/abc123', [], [
+            'Authorization' => $auth['token_type'] . ' ' . $auth['access_token'],
+        ]);
+
+        $response->assertStatus(404);
+    }
+
+    /**
+     * @depends testLoginAnotherUser
+     * @depends testCreateSucceed
+     */
+    public function testGetAnotherUserTripNotFound($auth, $trip)
+    {
+        $response = $this->json('get', "/trips/{$trip->uuid}", [], [
+            'Authorization' => $auth['token_type'] . ' ' . $auth['access_token'],
+        ]);
+
+        $response->assertStatus(404);
+    }
+
+    /**
+     * @depends testLogin
+     * @depends testCreateSucceed
+     */
+    public function testGetSucceed($auth, $trip)
+    {
+        $response = $this->json('get', "/trips/{$trip->uuid}", [], [
+            'Authorization' => $auth['token_type'] . ' ' . $auth['access_token'],
+        ]);
+
+        $response->assertStatus(200);
     }
 }
