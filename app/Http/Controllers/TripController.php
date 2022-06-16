@@ -60,12 +60,45 @@ class TripController extends Controller
     public function show($uuid)
     {
         $trip = Trip::where('user_id', Auth::id())
-            ->where('uuid', $uuid)->first();
+            ->where('uuid', $uuid)
+            ->first();
 
         if (!$trip) {
             return response()->json([
                 'message' => 'Trip not found.'
             ], 404);
+        }
+
+        return $trip;
+    }
+
+    /**
+     * Update the trip by UUID.
+     */
+    public function update(Request $request, String $uuid)
+    {
+        $trip = Trip::where('user_id', Auth::id())
+            ->where('uuid', $uuid)
+            ->first();
+
+        if (!$trip) {
+            return response()->json([
+                'message' => 'Trip not found.'
+            ], 404);
+        }
+
+        $trip->title = $request->title;
+        $trip->origin = $request->origin;
+        $trip->destination = $request->destination;
+        $trip->start_at = Carbon::parse($request->start_at)->setTimezone(env('DB_TIMEZONE'));
+        $trip->end_at = Carbon::parse($request->end_at)->setTimezone(env('DB_TIMEZONE'));
+        $trip->type = $request->type;
+        $trip->description = $request->description;
+        
+        if (!$trip->save()) {
+            return response()->json([
+                'message' => 'Update trip failed.'
+            ], 422);
         }
 
         return $trip;

@@ -8,7 +8,7 @@ class TripTest extends TestCase
 {
     public function testLogin()
     {
-        $response = $this->json('post', '/auth', [
+        $response = $this->postJson('/auth', [
             'email' => 'adam@mail.com',
             'password' => '123456'
         ]);
@@ -20,7 +20,7 @@ class TripTest extends TestCase
 
     public function testLoginAnotherUser()
     {
-        $response = $this->json('post', '/auth', [
+        $response = $this->postJson('/auth', [
             'email' => 'bilal@mail.com',
             'password' => '123456'
         ]);
@@ -32,7 +32,7 @@ class TripTest extends TestCase
 
     public function testCreateUnauthenticated()
     {
-        $response = $this->json('post', '/trips', [
+        $response = $this->postJson('/trips', [
             "origin" => "Jakarta",
             "destination" => "Surabaya",
             "start_at" => "2022-07-01T09:00:00+07:00",
@@ -49,7 +49,7 @@ class TripTest extends TestCase
      */
     public function testCreateTitleMissing($auth)
     {
-        $response = $this->json('post', '/trips', [
+        $response = $this->postJson('/trips', [
             "origin" => "Jakarta",
             "destination" => "Surabaya",
             "start_at" => "2022-08-01T09:00:00+07:00",
@@ -68,7 +68,7 @@ class TripTest extends TestCase
      */
     public function testCreateScheduleInvalid($auth)
     {
-        $response = $this->json('post', '/trips', [
+        $response = $this->postJson('/trips', [
             "title" => "JKT-SBY",
             "origin" => "Jakarta",
             "destination" => "Surabaya",
@@ -88,14 +88,14 @@ class TripTest extends TestCase
      */
     public function testCreateSucceed($auth)
     {
-        $response = $this->json('post', '/trips', [
-            "title" => "JKT-SBY",
-            "origin" => "Jakarta",
-            "destination" => "Surabaya",
-            "start_at" => "2022-07-01T09:00:00+07:00",
-            "end_at" => "2022-07-25T09:00:00+07:00",
-            "type" => "business",
-            "description" => "Business trip to Surabaya",
+        $response = $this->postJson('/trips', [
+            'title' => 'JKT-SBY',
+            'origin' => 'Jakarta',
+            'destination' => 'Surabaya',
+            'start_at' => '2022-07-01T09:00:00+07:00',
+            'end_at' => '2022-07-25T09:00:00+07:00',
+            'type' => 'business',
+            'description' => 'Business trip to Surabaya',
         ], [
             'Authorization' => $auth['token_type'] . ' ' . $auth['access_token'],
         ]);
@@ -107,7 +107,7 @@ class TripTest extends TestCase
 
     public function testListUnauthenticated()
     {
-        $response = $this->json('get', '/trips');
+        $response = $this->getJson('/trips');
 
         $response->assertStatus(401);
     }
@@ -117,7 +117,7 @@ class TripTest extends TestCase
      */
     public function testListSucceed($auth)
     {
-        $response = $this->json('get', '/trips', [], [
+        $response = $this->getJson('/trips', [
             'Authorization' => $auth['token_type'] . ' ' . $auth['access_token'],
         ]);
 
@@ -129,7 +129,7 @@ class TripTest extends TestCase
      */
     public function testGetUnauthorized($trip)
     {
-        $response = $this->json('get', "/trips/{$trip->uuid}");
+        $response = $this->getJson("/trips/{$trip->uuid}");
 
         $response->assertStatus(401);
     }
@@ -139,7 +139,7 @@ class TripTest extends TestCase
      */
     public function testGetNotFound($auth)
     {
-        $response = $this->json('get', '/trips/abc123', [], [
+        $response = $this->getJson('/trips/abc123', [
             'Authorization' => $auth['token_type'] . ' ' . $auth['access_token'],
         ]);
 
@@ -150,9 +150,9 @@ class TripTest extends TestCase
      * @depends testLoginAnotherUser
      * @depends testCreateSucceed
      */
-    public function testGetAnotherUserTripNotFound($auth, $trip)
+    public function testGetAnotherUserRecordNotFound($auth, $trip)
     {
-        $response = $this->json('get', "/trips/{$trip->uuid}", [], [
+        $response = $this->getJson("/trips/{$trip->uuid}", [
             'Authorization' => $auth['token_type'] . ' ' . $auth['access_token'],
         ]);
 
@@ -165,10 +165,91 @@ class TripTest extends TestCase
      */
     public function testGetSucceed($auth, $trip)
     {
-        $response = $this->json('get', "/trips/{$trip->uuid}", [], [
+        $response = $this->getJson("/trips/{$trip->uuid}", [
             'Authorization' => $auth['token_type'] . ' ' . $auth['access_token'],
         ]);
 
         $response->assertStatus(200);
+    }
+
+    /**
+     * @depends testCreateSucceed
+     */
+    public function testUpdateUnauthorized($trip)
+    {
+        $response = $this->putJson("/trips/{$trip->uuid}", [
+            'title' => "{$trip->title} Updated",
+            'origin' => 'Jakarta',
+            'destination' => 'Surabaya',
+            'start_at' => '2022-07-01T09:00:00+07:00',
+            'end_at' => '2022-07-25T09:00:00+07:00',
+            'type' => 'business',
+            'description' => "{$trip->description} updated",
+        ]);
+
+        $response->assertStatus(401);
+    }
+
+    /**
+     * @depends testLogin
+     */
+    public function testUpdateNotFound($auth)
+    {
+        $response = $this->putJson('/trips/abc123', [
+            'title' => 'JKT-SBY',
+            'origin' => 'Jakarta',
+            'destination' => 'Surabaya',
+            'start_at' => '2022-07-01T09:00:00+07:00',
+            'end_at' => '2022-07-25T09:00:00+07:00',
+            'type' => 'business',
+            'description' => 'Business trip to Surabaya',
+        ], [
+            'Authorization' => $auth['token_type'] . ' ' . $auth['access_token'],
+        ]);
+
+        $response->assertStatus(404);
+    }
+
+    /**
+     * @depends testLoginAnotherUser
+     * @depends testCreateSucceed
+     */
+    public function testUpdateAnotherUserRecordNotFound($auth, $trip)
+    {
+        $response = $this->putJson("/trips/{$trip->uuid}", [
+            'title' => "{$trip->title} Updated",
+            'origin' => 'Jakarta',
+            'destination' => 'Surabaya',
+            'start_at' => '2022-07-01T09:00:00+07:00',
+            'end_at' => '2022-07-25T09:00:00+07:00',
+            'type' => 'business',
+            'description' => "{$trip->description} updated",
+        ], [
+            'Authorization' => $auth['token_type'] . ' ' . $auth['access_token'],
+        ]);
+
+        $response->assertStatus(404);
+    }
+
+    /**
+     * @depends testLogin
+     * @depends testCreateSucceed
+     */
+    public function testUpdateSucceed($auth, $trip)
+    {
+        $newTrip = [
+            'title' => "{$trip->title} Updated",
+            'origin' => 'Jakarta',
+            'destination' => 'Surabaya',
+            'type' => 'business',
+            'description' => "{$trip->description} updated",
+        ];
+
+        $response = $this->putJson("/trips/{$trip->uuid}", $newTrip, [
+            'Authorization' => $auth['token_type'] . ' ' . $auth['access_token'],
+        ]);
+
+        $response->assertStatus(200);
+        $response->assertJson($newTrip);
     }
 }

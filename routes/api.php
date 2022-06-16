@@ -28,4 +28,5 @@ Route::prefix('trips')->middleware('auth:sanctum')->group(function () {
     Route::get('', [TripController::class, 'index']);
     Route::post('', [TripController::class, 'store']);
     Route::get('/{uuid}', [TripController::class, 'show']);
+    Route::put('/{uuid}', [TripController::class, 'update']);
 });
