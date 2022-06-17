@@ -102,7 +102,7 @@ class TripTest extends TestCase
 
         $response->assertStatus(201);
 
-        return (object) $response->json();
+        return (object) $response->json('data');
     }
 
     public function testListUnauthenticated()
@@ -250,7 +250,9 @@ class TripTest extends TestCase
         ]);
 
         $response->assertStatus(200);
-        $response->assertJson($newTrip);
+        $response->assertJson([
+            'data' => $newTrip
+        ]);
     }
 
     /**

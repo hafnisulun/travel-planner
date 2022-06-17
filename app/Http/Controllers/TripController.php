@@ -2,20 +2,34 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Resources\TripResource;
 use App\Models\Trip;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Str;
+use Symfony\Component\Console\Input\Input;
 
 class TripController extends Controller
 {
     /**
      * List trips.
      */
-    public function index()
+    public function index(Request $request)
     {
-        return Trip::where('user_id', Auth::id())->get();
+        $page = $request->input('page', 1);
+        $trips = Cache::remember(
+            'users:' . Auth::id() . ':trips:pages:' . $page,
+            600,
+            function () use ($page) {
+                return Trip::where('user_id', Auth::id())
+                    ->orderBy('id', 'asc')
+                    ->paginate(5);
+            }
+        );
+
+        return TripResource::collection($trips);
     }
 
     /**
@@ -51,7 +65,7 @@ class TripController extends Controller
             ], 422);
         }
 
-        return $trip;
+        return new TripResource($trip);
     }
 
     /**
@@ -59,9 +73,15 @@ class TripController extends Controller
      */
     public function show($uuid)
     {
-        $trip = Trip::where('user_id', Auth::id())
-            ->where('uuid', $uuid)
-            ->first();
+        $trip = Cache::remember(
+            'users:' . Auth::id() . ':trips:' . $uuid,
+            600,
+            function () use ($uuid) {
+                return Trip::where('user_id', Auth::id())
+                    ->where('uuid', $uuid)
+                    ->first();
+            }
+        );
 
         if (!$trip) {
             return response()->json([
@@ -69,7 +89,7 @@ class TripController extends Controller
             ], 404);
         }
 
-        return $trip;
+        return new TripResource($trip);
     }
 
     /**
@@ -101,7 +121,7 @@ class TripController extends Controller
             ], 422);
         }
 
-        return $trip;
+        return new TripResource($trip);
     }
 
     /**
